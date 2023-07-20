@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PICO Flash-Light</title>
+</head>
+<style>
+    .slider-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .slider-container label {
+        flex: 0 0 100px;
+    }
+
+    .slider-container input[type="range"] {
+        flex: 1;
+    }
+</style>
+
+<body onload="startReader();">
+    <h1>PICO Flash Light</h1>
+
+    <div>
+        <div class="slider-container">
+            <label for="red">Red:</label>
+            <input type="range" id="red" name="red" min="0" max="255">
+        </div>
+        <div class="slider-container">
+            <label for="green">Green:</label>
+            <input type="range" id="green" name="green" min="0" max="255">
+        </div>
+        <div class="slider-container">
+            <label for="blue">Blue:</label>
+            <input type="range" id="blue" name="blue" min="0" max="255">
+        </div>
+    </div>
+    </p>
+    <p>
+    <div>
+        <div class="slider-container">
+            <label for="hue">Hue:</label>
+            <input type="range" id="hue" name="hue" min="0" max="359">
+        </div>
+        <div class="slider-container">
+            <label for="saturation">Saturation:</label>
+            <input type="range" id="saturation" name="saturation" min="0" max="100">
+        </div>
+        <div class="slider-container">
+            <label for="brightness">Brightness</label>
+            <input type="range" id="brightness" name="brightness" min="0" max="100">
+        </div>
+    </div>
+    </p>
+
+    <p>
+    <div>
+        <div class="slider-container">
+            <label for="master">Master Brightness</label>
+            <input type="range" id="master" name="master" min="0" max="100" value="10">
+        </div>
+    </div>
+
+    <p>
+        <a href="https://www.robmiles.com">Rob Miles</a>
+    </p>
+    <p>
+        <a href="https://github.com/CrazyRobMiles/PICO-Flash-Light">GitHub site</a>
+    </p>
+
+    <script type="text/javascript">
+
+        var redSlider;
+        var blueSlider;
+        var greenSlider;
+
+        var hueSlider;
+        var saturationSlider;
+        var brightnessSlider;
+
+        var masterSlider;
+
+        var hue = 0;
+        var saturation = 0;
+        var brightness = 0;
+
+        var oldRed = 0;
+        var oldBlue = 0;
+        var oldGreen = 0;
+        var oldMaster = -1;
+
+        var updateActive = false;
+
+        var hostAddress;
+        var setLightsURL;
+
+        function colChange() {
+            if (updateActive) return;
+            updateActive = true;
+            rgbToHsb();
+            updateActive = false;
+        }
+
+        function hsbChange(e) {
+            if (updateActive) return;
+            updateActive = true;
+            hsbToRgb();
+            updateActive = false;
+        }
+
+        function getFromServer(url, handler) {
+            fetch(url).then(response => {
+                response.text().then(result => {
+                    handler(result);
+                }).catch(error => alert("Bad text: " + error));
+            }).catch(error => alert("Bad fetch: " + error));
+        }
+
+        function tick() {
+
+            // get the values
+            const red = redSlider.value;
+            const blue = blueSlider.value;
+            const green = greenSlider.value;
+            const master = masterSlider.value;
+
+            // have any changed?
+            if (red == oldRed && blue == oldBlue && green == oldGreen && master == oldMaster) {
+                return;
+            }
+
+            // Update the old values
+            oldRed = red;
+            oldGreen = green;
+            oldBlue = blue;
+            oldMaster = master;
+
+            console.log(`Red:${red} Green:${green} Blue:${blue} Master:${master}`);
+
+            // build the url
+            let url = setLightsURL + `?red=${red}&blue=${blue}&green=${green}&master=${master}`;
+
+            var live = true;
+
+            if (live) {
+                // get from the server
+                getFromServer(url, result => {
+                    console.log(`Got response:${result}`);
+                });
+            }
+        }
+
+
+        function hsbToRgb() {
+            const h = hueSlider.value;
+            const s = saturationSlider.value / 100;
+            const v = brightnessSlider.value / 100;
+
+            console.log(`Hue:${h} Saturation:${s} Brightness:${v}`);
+
+            const c = v * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = v - c;
+
+            let r, g, b;
+
+            if (0 <= h && h < 60) {
+                r = c;
+                g = x;
+                b = 0;
+            } else if (60 <= h && h < 120) {
+                r = x;
+                g = c;
+                b = 0;
+            } else if (120 <= h && h < 180) {
+                r = 0;
+                g = c;
+                b = x;
+            } else if (180 <= h && h < 240) {
+                r = 0;
+                g = x;
+                b = c;
+            } else if (240 <= h && h < 300) {
+                r = x;
+                g = 0;
+                b = c;
+            } else if (300 <= h && h < 360) {
+                r = c;
+                g = 0;
+                b = x;
+            }
+
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+
+            console.log(`Red:${r} Green:${g} Blue:${b}`);
+
+            redSlider.value = Math.round(r);
+            greenSlider.value = Math.round(g);
+            blueSlider.value = Math.round(b);
+        }
+
+
+        function rgbToHsb() {
+            r = redSlider.value / 255;
+            g = greenSlider.value / 255;
+            b = blueSlider.value / 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const delta = max - min;
+
+            if (delta === 0) {
+                hue = 0;
+            } else if (max === r) {
+                hue = ((g - b) / delta) % 6;
+            } else if (max === g) {
+                hue = (b - r) / delta + 2;
+            } else if (max === b) {
+                hue = (r - g) / delta + 4;
+            }
+
+            hue = Math.round(hue * 60);
+            if (hue < 0) {
+                hue += 360;
+            }
+
+            saturation = (max === 0) ? 0 : delta / max;
+            saturation = Math.round(saturation * 100);
+
+            brightness = Math.round(max * 100);
+
+            hueSlider.value = hue;
+            saturationSlider.value = saturation;
+            brightnessSlider.value = brightness;
+        }
+
+
+        function startReader() {
+
+            // get the name of the web host
+            var hostName = window.location.hostname;
+
+            // make the host address from the host name
+            hostAddress = "http://" + hostName + "/";
+            // make the address of the lights setting
+            setLightsURL = hostAddress + "lights";
+            console.log("Host address: " + hostAddress);
+
+            redSlider = document.getElementById("red");
+            redSlider.oninput = colChange;
+            blueSlider = document.getElementById("blue");
+            blueSlider.oninput = colChange;
+            greenSlider = document.getElementById("green");
+            greenSlider.oninput = colChange;
+            masterSlider = document.getElementById("master");
+
+            hueSlider = document.getElementById("hue");
+            hueSlider.oninput = hsbChange;
+            saturationSlider = document.getElementById("saturation");
+            saturationSlider.oninput = hsbChange;
+            brightnessSlider = document.getElementById("brightness");
+            brightnessSlider.oninput = hsbChange;
+
+            redSlider.value = 128;
+            greenSlider.value = 128;
+            blueSlider.value = 128;
+            setInterval(tick, 200);
+        }
+
+    </script>
+</body>
+
+</html>
