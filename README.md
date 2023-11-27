@@ -4,12 +4,14 @@ A browser controlled light powered by PICO-W
 
 ![Flash light](images/flash.jpg)
 This is the flashgun light in use on a camera, providing an interesting blue light.
+## *IMPORTANT NOTE
+The flashlight uses four AA batteries with a nominal output of 1.5 volts each. However, if you use brand-new, shiny batteries this can cause the supply voltage to exceed the maximum voltage for the PICO. This doesn't cause any damage - the PICO just doesn't do anything. You can fix the problem by using rechargeable batteries (these only put out 1.2 volts) or using batteries that have already had some use.
 
 ## Upcycling an old flashgun
 
 ![Flash light parts](images/internals.jpg)
 
-The flash light was created by upcycling a broken flash gun purchased from a market stall. You could use the same technique to create your own updated device. The flash gun contains a battery holder for 4 AA batteries delivering 6 volts in total. 
+The flash light was created by upcycling a broken flash gun purchased from a market stall. You could use the same technique to create your own updated device. The flash gun contains a battery holder for 4 AA batteries delivering 6 volts in total (although this can cause problems - see above).
 
 You will need:
 
